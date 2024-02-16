@@ -17,11 +17,11 @@ class VkAuth extends AbstractAuth
          * Проверяем подпись запроса
          */
         $this->params = $this->checkSignature();
-		
+
         /*
          * Информация о пользователе
          */
-		$this->UserInfo = $this->getUserInfo();
+        $this->UserInfo = $this->getUserInfo();
 
         /*
          * Возвращаем ответ для клиента
