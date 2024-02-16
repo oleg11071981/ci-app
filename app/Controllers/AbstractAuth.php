@@ -42,7 +42,7 @@ abstract class AbstractAuth extends ResourceController
     public function __construct()
     {
         $this->config = config('Personal/Settings');
-		$request = service('request');
+        $request = service('request');
         $this->params = $request->getGet();
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
