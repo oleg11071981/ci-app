@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\User;
 use CodeIgniter\RESTful\ResourceController;
 
 /*
@@ -37,6 +38,11 @@ abstract class AbstractAuth extends ResourceController
     private $UserInfo;
 
     /*
+     * Класс для работы с пользователем
+     */
+    protected $User;
+
+    /*
      * Конструктор
      */
     public function __construct()
@@ -46,7 +52,9 @@ abstract class AbstractAuth extends ResourceController
         $this->params = $request->getGet();
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
+        $this->User = new User();
         $this->UserInfo = [];
+        $this->UserInfoFromDb = [];
     }
 
     /*
@@ -87,6 +95,27 @@ abstract class AbstractAuth extends ResourceController
             $this->sendResponseError(403, $this->UserInfo['error'], 'auth_error');
         }
         return $this->UserInfo;
+    }
+
+    /*
+     * Получение информации о пользователе из БД. Регистрация и авторизация пользователя
+     */
+    protected function getUserInfoFromDb()
+    {
+        $UserInfoFromDb = $this->User->getUserInfo($this->UserInfo['id']);
+        if (isset($UserInfoFromDb['error'])) {
+            $this->sendResponseError(403, $UserInfoFromDb['error'], 'auth_error');
+        }
+        /*
+         * Регистрация пользователя
+         */
+        if (!isset($UserInfoFromDb['id'])) {
+            $UserInfoFromDb = $this->User->userRegistration($this->UserInfo);
+            if (isset($UserInfoFromDb['error'])) {
+                $this->sendResponseError(403, $UserInfoFromDb['error'], 'auth_error');
+            }
+        }
+        return $UserInfoFromDb;
     }
 
 }
