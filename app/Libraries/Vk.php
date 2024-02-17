@@ -2,6 +2,9 @@
 
 namespace App\Libraries;
 
+use Config\Services;
+use Exception;
+
 /**
  * Класс для работы с социальной сетью ВК
  */
@@ -10,22 +13,22 @@ class Vk
     /*
      * Секретный ключ приложения
      */
-    public $secret_key;
+    public string $secret_key;
 
     /*
      * Сервисный ключ приложения
      */
-    public $service_key;
+    public string $service_key;
 
     /*
      * Версия API
      */
-    public $api_version;
+    public float $api_version;
 
     /*
      * URL API
      */
-    public $api_url;
+    public string $api_url;
 
     /*
      * Конструктор
@@ -52,16 +55,16 @@ class Vk
     }
 
     /*
-     * Отправка запроса к API
+     * Отправка запроса API
      */
-    private function sendRequest($method = 'GET', $api_method = 'users.get', $query = [], $timeout = 5)
+    private function sendRequest($api_method, $query = [], $method = 'GET', $timeout = 5)
     {
         try {
-            $client = \Config\Services::curlrequest();
+            $client = Services::curlrequest();
             $url = $this->api_url . '/' . $api_method;
             $response = $client->request($method, $url, ['query' => $query, 'timeout' => $timeout]);
             return json_decode($response->getBody(), true);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return ['error' => $e->getMessage()];
         }
     }
@@ -80,7 +83,7 @@ class Vk
         ];
         $attempts = 0;
         do {
-            $result = $this->sendRequest('GET', 'users.get', $query, 5);
+            $result = $this->sendRequest( 'users.get', $query);
             if (isset($result['response'][0]['id'])) {
                 return [
                     'id' => $result['response'][0]['id'],
@@ -91,6 +94,7 @@ class Vk
                     'male' => isset($result['response'][0]['sex']) && $result['response'][0]['sex'] != 1 ? 1 : 0,
                     'small_photo' => $result['response'][0]['photo_100'] ?? '',
                     'big_photo' => $result['response'][0]['photo_200'] ?? '',
+                    'b_date' => $result['response'][0]['bdate'] ?? '0000-00-00'
                 ];
             } else {
                 $attempts++;

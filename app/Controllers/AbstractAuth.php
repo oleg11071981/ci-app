@@ -35,12 +35,12 @@ abstract class AbstractAuth extends ResourceController
     /*
      * Информация о пользователе
      */
-    private $UserInfo;
+    protected array $UserInfo;
 
     /*
      * Класс для работы с пользователем
      */
-    protected $User;
+    protected User $User;
 
     /*
      * Конструктор
@@ -54,20 +54,19 @@ abstract class AbstractAuth extends ResourceController
         $this->SocClass = new $this->ClassName($this->config);
         $this->User = new User();
         $this->UserInfo = [];
-        $this->UserInfoFromDb = [];
     }
 
     /*
      * Прекращение работы запроса с выводом ошибки
      */
-    private function sendResponseError($status, $error, $error_key)
+    private function sendResponseError($error)
     {
         $Response = service('response');
-        $Response->setStatusCode($status);
+        $Response->setStatusCode(403);
         $Response->setContentType('application/json');
         $Response->setJSON([
             'error' => $error,
-            'error_key' => $error_key
+            'error_key' => 'auth_error'
         ]);
         $Response->send();
         exit();
@@ -76,11 +75,11 @@ abstract class AbstractAuth extends ResourceController
     /*
      * Проверка подписи запроса
      */
-    protected function checkSignature()
+    protected function checkSignature(): array
     {
         $this->params = $this->SocClass->verifyKey($this->params);
         if (count($this->params) === 0) {
-            $this->sendResponseError(403, 'Неверная подпись запроса', 'auth_error');
+            $this->sendResponseError('Неверная подпись запроса');
         }
         return $this->params;
     }
@@ -88,11 +87,11 @@ abstract class AbstractAuth extends ResourceController
     /*
      * Получение информации о пользователе
      */
-    protected function getUserInfo()
+    protected function getUserInfo(): array
     {
         $this->UserInfo = $this->SocClass->getUserInfo($this->params);
         if (isset($this->UserInfo['error'])) {
-            $this->sendResponseError(403, $this->UserInfo['error'], 'auth_error');
+            $this->sendResponseError($this->UserInfo['error']);
         }
         return $this->UserInfo;
     }
@@ -100,11 +99,11 @@ abstract class AbstractAuth extends ResourceController
     /*
      * Получение информации о пользователе из БД. Регистрация и авторизация пользователя
      */
-    protected function getUserInfoFromDb()
+    protected function getUserInfoFromDb(): array
     {
         $UserInfoFromDb = $this->User->getUserInfo($this->UserInfo['id']);
         if (isset($UserInfoFromDb['error'])) {
-            $this->sendResponseError(403, $UserInfoFromDb['error'], 'auth_error');
+            $this->sendResponseError($UserInfoFromDb['error']);
         }
         /*
          * Регистрация пользователя
@@ -112,7 +111,7 @@ abstract class AbstractAuth extends ResourceController
         if (!isset($UserInfoFromDb['id'])) {
             $UserInfoFromDb = $this->User->userRegistration($this->UserInfo);
             if (isset($UserInfoFromDb['error'])) {
-                $this->sendResponseError(403, $UserInfoFromDb['error'], 'auth_error');
+                $this->sendResponseError($UserInfoFromDb['error']);
             }
         }
         return $UserInfoFromDb;
