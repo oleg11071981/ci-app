@@ -38,11 +38,6 @@ abstract class AbstractAuth extends ResourceController
     protected array $UserInfo;
 
     /*
-     * Класс для работы с пользователем
-     */
-    protected User $User;
-
-    /*
      * Конструктор
      */
     public function __construct()
@@ -52,7 +47,6 @@ abstract class AbstractAuth extends ResourceController
         $this->params = $request->getGet();
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
-        $this->User = new User();
         $this->UserInfo = [];
     }
 
@@ -101,18 +95,15 @@ abstract class AbstractAuth extends ResourceController
      */
     protected function getUserInfoFromDb(): array
     {
-        $UserInfoFromDb = $this->User->getUserInfo($this->UserInfo['id']);
+        $User = new User();
+        $UserInfoFromDb = $User->getUserInfo($this->UserInfo['id']);
+        if (!isset($UserInfoFromDb['id']) && !isset($UserInfoFromDb['error']))
+        {
+            //Регистрируем пользователя
+            $UserInfoFromDb = $User->userRegistration($this->UserInfo);
+        }
         if (isset($UserInfoFromDb['error'])) {
             $this->sendResponseError($UserInfoFromDb['error']);
-        }
-        /*
-         * Регистрация пользователя
-         */
-        if (!isset($UserInfoFromDb['id'])) {
-            $UserInfoFromDb = $this->User->userRegistration($this->UserInfo);
-            if (isset($UserInfoFromDb['error'])) {
-                $this->sendResponseError($UserInfoFromDb['error']);
-            }
         }
         return $UserInfoFromDb;
     }

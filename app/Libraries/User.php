@@ -2,7 +2,6 @@
 
 namespace App\Libraries;
 
-use CodeIgniter\Database\BaseConnection;
 use Config\Database;
 use DateTime;
 use Exception;
@@ -12,16 +11,6 @@ use Exception;
  */
 class User
 {
-    /*
-     * Соединение с БД
-     */
-    private BaseConnection $db;
-
-    public function __construct()
-    {
-        $this->db = Database::connect();
-    }
-
     /*
      * Определение IP адреса пользователя
      */
@@ -53,8 +42,9 @@ class User
      */
     public function getUserInfo($id): array
     {
+        $db = Database::connect();
         try {
-            $query = $this->db->table('users')->where('id', $id)->get();
+            $query = $db->table('users')->where('id', $id)->get();
             if ($query->getNumRows() > 0) {
                 return $query->getRowArray();
             } else {
@@ -63,7 +53,7 @@ class User
         } catch (Exception $e) {
             return ['error' => 'Database error: ' . $e->getMessage()];
         } finally {
-            $this->db->close();
+            $db->close();
         }
     }
 
@@ -72,6 +62,7 @@ class User
      */
     public function userRegistration($UserInfo): array
     {
+        $db = Database::connect();
         try {
             $UserInfo['b_date'] = date('Y-m-d',strtotime($UserInfo['b_date']));
             $UserInfo['create_at'] = date('Y-m-d H:i:s');
@@ -79,21 +70,13 @@ class User
             $UserInfo['age'] = $this->getUserAge($UserInfo['b_date']);
             $UserInfo['ip'] = $this->getIPAddress();
             $UserInfo['date'] = date('Y-m-d');
-            $this->db->table('users')->insert($UserInfo);
+            $db->table('users')->insert($UserInfo);
             return $UserInfo;
         } catch (Exception $e) {
             return ['error' => 'Database error: ' . $e->getMessage()];
         } finally {
-            $this->db->close();
+            $db->close();
         }
-    }
-
-    /*
-     * Деструктор
-     */
-    public function __destruct()
-    {
-        $this->db->close();
     }
 
 }
