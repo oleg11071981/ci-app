@@ -72,8 +72,8 @@ abstract class AbstractAuth extends ResourceController
     protected function checkSignature(): array
     {
         $this->params = $this->SocClass->verifyKey($this->params);
-        if (count($this->params) === 0) {
-            $this->sendResponseError('Неверная подпись запроса');
+        if (isset($this->params['error'])) {
+            $this->sendResponseError($this->params['error']);
         }
         return $this->params;
     }

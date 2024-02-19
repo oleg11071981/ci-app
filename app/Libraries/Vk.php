@@ -50,7 +50,7 @@ class Vk
             md5($params['api_id'] . '_' . $params['viewer_id'] . '_' . $this->secret_key) === $params['auth_key']) {
             return $params;
         } else {
-            return [];
+            return ['error' => 'Неверная подпись запроса'];
         }
     }
 
@@ -72,7 +72,7 @@ class Vk
     /*
      * Получение информации о пользователе
      */
-    public function getUserInfo($params)
+    public function getUserInfo($params): array
     {
         $query = [
             'user_id' => $params['viewer_id'],
@@ -97,10 +97,11 @@ class Vk
                     'b_date' => $result['response'][0]['bdate'] ?? '0000-00-00'
                 ];
             } else {
+                usleep(1000);
                 $attempts++;
             }
         } while ($attempts < 20);
-		return $result['error'] ?? ['error' => 'Ошибка получения информации о пользователе: Число попыток: ' . $attempts];
+		return [ 'error' => $result['error']['error_msg'] ?? 'Ошибка получения информации о пользователе' ];
     }
 
 }
