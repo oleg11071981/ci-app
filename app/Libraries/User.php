@@ -51,7 +51,7 @@ class User
                 return [];
             }
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка получения информации о пользователе ('.$e->getMessage().')'];
+            return ['error' => 'Ошибка получения информации о пользователе: '.$id.' ('.$e->getMessage().')'];
         } finally {
             $db->close();
         }
@@ -73,7 +73,7 @@ class User
             $db->table('users')->insert($UserInfo);
             return $UserInfo;
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка регистрации пользователя ('.$e->getMessage().')'];
+            return ['error' => 'Ошибка регистрации пользователя: '.$UserInfo['id'].' ('.$e->getMessage().')'];
         } finally {
             $db->close();
         }
