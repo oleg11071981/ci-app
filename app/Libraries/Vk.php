@@ -65,7 +65,7 @@ class Vk
             $response = $client->request($method, $url, ['query' => $query, 'timeout' => $timeout]);
             return json_decode($response->getBody(), true);
         } catch (Exception $e) {
-            return ['error' => $e->getMessage()];
+            return ['error' => 'Ошибка отправки запроса ('.$e->getMessage().')'];
         }
     }
 
@@ -101,7 +101,7 @@ class Vk
                 $attempts++;
             }
         } while ($attempts < 20);
-		return [ 'error' => $result['error']['error_msg'] ?? 'Ошибка получения информации о пользователе' ];
+		return [ 'error' => 'Ошибка получения информации о пользователе ('.($result['error']['error_msg'] ?? $result['error'] ?? 'unknow').')' ];
     }
 
 }

@@ -3,8 +3,8 @@
 namespace App\Libraries;
 
 use Config\Database;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use DateTime;
-use Exception;
 
 /**
  * Класс для работы с данными пользователя
@@ -50,8 +50,8 @@ class User
             } else {
                 return [];
             }
-        } catch (Exception $e) {
-            return ['error' => 'Database error: ' . $e->getMessage()];
+        } catch (DatabaseException $e) {
+            return ['error' => 'Ошибка получения информации о пользователе ('.$e->getMessage().')'];
         } finally {
             $db->close();
         }
@@ -72,8 +72,8 @@ class User
             $UserInfo['date'] = date('Y-m-d');
             $db->table('users')->insert($UserInfo);
             return $UserInfo;
-        } catch (Exception $e) {
-            return ['error' => 'Database error: ' . $e->getMessage()];
+        } catch (DatabaseException $e) {
+            return ['error' => 'Ошибка регистрации пользователя ('.$e->getMessage().')'];
         } finally {
             $db->close();
         }
