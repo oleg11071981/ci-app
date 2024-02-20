@@ -62,6 +62,7 @@ abstract class AbstractAuth extends ResourceController
             'error' => $error,
             'error_key' => 'auth_error'
         ]);
+        log_message('error',$error);
         $Response->send();
         exit();
     }
