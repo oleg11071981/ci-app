@@ -5,6 +5,7 @@ namespace App\Libraries;
 use Config\Database;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use DateTime;
+use Exception;
 
 /**
  * Класс для работы с данными пользователя
@@ -31,10 +32,13 @@ class User
      */
     private function getUserAge($dateOfBirth): int
     {
-        $currentDate = date('Y-m-d');
-        $birthdate = new DateTime($dateOfBirth);
-        $today = new DateTime($currentDate);
-        return $birthdate->diff($today)->y;
+        try {
+            $currentDate = new DateTime();
+            $birthdate = new DateTime($dateOfBirth);
+            return $birthdate->diff($currentDate)->y;
+        } catch (Exception $e) {
+            return 0;
+        }
     }
 
     /*
