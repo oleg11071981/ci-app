@@ -55,7 +55,7 @@ class User
                 return [];
             }
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка получения информации о пользователе: '.$id.' ('.$e->getMessage().')'];
+            return ['error' => 'Ошибка получения информации о пользователе: ' . $id . ' (' . $e->getMessage() . ')'];
         } finally {
             $db->close();
         }
@@ -68,16 +68,32 @@ class User
     {
         $db = Database::connect();
         try {
-            $UserInfo['b_date'] = date('Y-m-d',strtotime($UserInfo['b_date']));
+            $UserInfo['b_date'] = strlen($UserInfo['b_date']) > 5 ? date('Y-m-d', strtotime($UserInfo['b_date'])) : '0000-00-00';
+            $UserInfo['age'] = $UserInfo['b_date'] == '0000-00-00' ? 0 : $this->getUserAge($UserInfo['b_date']);
             $UserInfo['create_at'] = date('Y-m-d H:i:s');
             $UserInfo['modify_at'] = date('Y-m-d H:i:s');
-            $UserInfo['age'] = $this->getUserAge($UserInfo['b_date']);
             $UserInfo['ip'] = $this->getIPAddress();
             $UserInfo['date'] = date('Y-m-d');
             $db->table('users')->insert($UserInfo);
             return $UserInfo;
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка регистрации пользователя: '.$UserInfo['id'].' ('.$e->getMessage().')'];
+            return ['error' => 'Ошибка регистрации пользователя: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
+        } finally {
+            $db->close();
+        }
+    }
+
+    /*
+     * Обновление данных пользователя
+     */
+    public function updateUser($id, $data): array
+    {
+        $db = Database::connect();
+        try {
+            $db->table('users')->where('id', $id)->update($data);
+            return ['success' => true];
+        } catch (DatabaseException $e) {
+            return ['error' => 'Ошибка обновления данных пользователя: ' . $id . ' (' . $e->getMessage() . ')'];
         } finally {
             $db->close();
         }
