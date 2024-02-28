@@ -62,7 +62,7 @@ abstract class AbstractAuth extends ResourceController
             'error' => $error,
             'error_key' => 'auth_error'
         ]);
-        log_message('error',$error);
+        log_message('error', $error);
         $Response->send();
         exit();
     }
@@ -98,9 +98,17 @@ abstract class AbstractAuth extends ResourceController
     {
         $User = new User();
         $UserInfoFromDb = $User->getUserInfo($this->UserInfo['id']);
-        if (!isset($UserInfoFromDb['id']) && !isset($UserInfoFromDb['error']))
-        {
-            //Регистрируем пользователя
+        //Авторизация
+        if (isset($UserInfoFromDb['id'])) {
+            $data = [
+                'modify_at' => date('Y-m-d H:i:s'),
+                'date' => date('Y-m-d'),
+                'ip' => $User->getIPAddress(),
+                'age' => $UserInfoFromDb['b_date'] == '0000-00-00' ? 0 : $User->getUserAge($UserInfoFromDb['b_date'])
+            ];
+            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, $data);
+        } //Регистрация
+        elseif (!isset($UserInfoFromDb['error'])) {
             $UserInfoFromDb = $User->userRegistration($this->UserInfo);
         }
         if (isset($UserInfoFromDb['error'])) {

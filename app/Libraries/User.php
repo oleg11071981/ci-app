@@ -15,7 +15,7 @@ class User
     /*
      * Определение IP адреса пользователя
      */
-    private function getIPAddress()
+    public function getIPAddress()
     {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ipAddress = $_SERVER['HTTP_CLIENT_IP'];
@@ -30,7 +30,7 @@ class User
     /*
      * Определение возраста пользователя
      */
-    private function getUserAge($dateOfBirth): int
+    public function getUserAge($dateOfBirth): int
     {
         try {
             $currentDate = new DateTime();
@@ -86,14 +86,17 @@ class User
     /*
      * Обновление данных пользователя
      */
-    public function updateUser($id, $data): array
+    public function updateUser($UserInfo, $data): array
     {
+        foreach ($data as $key => $val) {
+            $UserInfo[$key] = $val;
+        }
         $db = Database::connect();
         try {
-            $db->table('users')->where('id', $id)->update($data);
-            return ['success' => true];
+            $db->table('users')->where('id', $UserInfo['id'])->update($data);
+            return $UserInfo;
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка обновления данных пользователя: ' . $id . ' (' . $e->getMessage() . ')'];
+            return ['error' => 'Ошибка обновления данных пользователя: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
         } finally {
             $db->close();
         }
