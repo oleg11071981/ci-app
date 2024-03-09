@@ -50,7 +50,7 @@ class Vk
             md5($params['api_id'] . '_' . $params['viewer_id'] . '_' . $this->secret_key) === $params['auth_key']) {
             return $params;
         } else {
-            return ['error' => 'Неверная подпись запроса'];
+            return ['error' => 'Неверная подпись запроса'.(isset($params['viewer_id']) ? ', viewer_id: '.$params['viewer_id'] : '' )];
         }
     }
 
