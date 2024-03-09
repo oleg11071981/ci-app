@@ -50,7 +50,7 @@ class Vk
             md5($params['api_id'] . '_' . $params['viewer_id'] . '_' . $this->secret_key) === $params['auth_key']) {
             return $params;
         } else {
-            return ['error' => 'Неверная подпись запроса'.(isset($params['viewer_id']) ? ', viewer_id: '.$params['viewer_id'] : '' )];
+            return ['error' => 'Неверная подпись запроса' . (isset($params['viewer_id']) ? ', viewer_id: ' . $params['viewer_id'] : '')];
         }
     }
 
@@ -65,7 +65,7 @@ class Vk
             $response = $client->request($method, $url, ['query' => $query, 'timeout' => $timeout]);
             return json_decode($response->getBody(), true);
         } catch (Exception $e) {
-            return ['error' => 'Ошибка отправки запроса ('.$e->getMessage().')'];
+            return ['error' => 'Ошибка отправки запроса (' . $e->getMessage() . ')'];
         }
     }
 
@@ -83,7 +83,7 @@ class Vk
         ];
         $attempts = 0;
         do {
-            $result = $this->sendRequest( 'users.get', $query);
+            $result = $this->sendRequest('users.get', $query);
             if (isset($result['response'][0]['id'])) {
                 return [
                     'id' => $result['response'][0]['id'],
@@ -101,7 +101,7 @@ class Vk
                 $attempts++;
             }
         } while ($attempts < 20);
-		return [ 'error' => 'Ошибка получения информации о пользователе ('.($result['error']['error_msg'] ?? $result['error'] ?? 'unknow').')' ];
+        return ['error' => 'Ошибка получения информации о пользователе (' . ($result['error']['error_msg'] ?? $result['error'] ?? 'unknow') . ')'];
     }
 
 }
