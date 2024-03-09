@@ -2,10 +2,13 @@
 
 namespace App\Libraries;
 
+use CodeIgniter\Cache\CacheInterface;
 use Config\Database;
 use CodeIgniter\Database\Exceptions\DatabaseException;
+use Config\Services;
 use DateTime;
 use Exception;
+use RuntimeException;
 
 /**
  * Класс для работы с данными пользователя
@@ -74,10 +77,23 @@ class User
             $UserInfo['modify_at'] = date('Y-m-d H:i:s');
             $UserInfo['ip'] = $this->getIPAddress();
             $UserInfo['date'] = date('Y-m-d');
+            $db->transException(true)->transStart();
             $db->table('users')->insert($UserInfo);
+            $cache = Services::cache();
+            if (!$cache instanceof CacheInterface) {
+                throw new RuntimeException('Сервис кэша недоступен');
+            }
+            if (!$cache->save('UserInfo' . $UserInfo['id'], $UserInfo, 3600)) {
+                throw new RuntimeException('Ошибка при сохранении данных в кэше');
+            }
+            $db->transComplete();
             return $UserInfo;
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка регистрации пользователя: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
+            $db->transRollback();
+            return ['error' => 'Ошибка регистрации пользователя в БД: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
+        } catch (RuntimeException $e) {
+            $db->transRollback();
+            return ['error' => 'Ошибка регистрации пользователя в кэше: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
         } finally {
             $db->close();
         }
@@ -93,10 +109,23 @@ class User
         }
         $db = Database::connect();
         try {
+            $db->transException(true)->transStart();
             $db->table('users')->where('id', $UserInfo['id'])->update($data);
+            $cache = Services::cache();
+            if (!$cache instanceof CacheInterface) {
+                throw new RuntimeException('Сервис кэша недоступен');
+            }
+            if (!$cache->save('UserInfo' . $UserInfo['id'], $UserInfo, 3600)) {
+                throw new RuntimeException('Ошибка при сохранении данных в кэше');
+            }
+            $db->transComplete();
             return $UserInfo;
         } catch (DatabaseException $e) {
-            return ['error' => 'Ошибка обновления данных пользователя: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
+            $db->transRollback();
+            return ['error' => 'Ошибка обновления данных пользователя в БД: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
+        } catch (RuntimeException $e) {
+            $db->transRollback();
+            return ['error' => 'Ошибка обновления данных пользователя в кэше: ' . $UserInfo['id'] . ' (' . $e->getMessage() . ')'];
         } finally {
             $db->close();
         }
