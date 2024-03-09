@@ -13,13 +13,15 @@ class VkAuth extends AbstractAuth
 
     public function index()
     {
-        $this->params = $this->checkSignature();
+        $this->checkSignature();
 
-        $this->UserInfo = $this->getUserInfo();
+        $this->getUserInfo();
 
-        $UserInfoFromDb = $this->getUserInfoFromDb();
+        $this->getUserInfoFromDb();
 
-        return $this->respond($UserInfoFromDb, 200);
+        $data = $this->setClientData();
+
+        return $this->respond($data, 200);
     }
 
 }

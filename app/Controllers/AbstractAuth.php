@@ -114,7 +114,19 @@ abstract class AbstractAuth extends ResourceController
         if (isset($UserInfoFromDb['error'])) {
             $this->sendResponseError($UserInfoFromDb['error']);
         }
-        return $UserInfoFromDb;
+        return $this->UserInfo = $UserInfoFromDb;
+    }
+
+    /*
+     * Подготовка ответа для клиента
+     */
+    protected function setClientData(): array
+    {
+        return [
+            'playerData' => $this->UserInfo,
+            'worldData' => [],
+            'configData' => []
+        ];
     }
 
 }
