@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Libraries\ConfigData;
 use App\Libraries\User;
+use App\Libraries\WorldData;
 use CodeIgniter\RESTful\ResourceController;
 
 /*
@@ -122,11 +124,11 @@ abstract class AbstractAuth extends ResourceController
      */
     protected function setClientData(): array
     {
-        return [
+        return array(
             'playerData' => $this->UserInfo,
-            'worldData' => [],
-            'configData' => []
-        ];
+            'worldData' => (new WorldData())->getWorldData(),
+            'configData' => (new ConfigData())->getConfigData()
+        );
     }
 
 }
