@@ -2,8 +2,14 @@
 
 namespace App\Libraries;
 
+/**
+ * Дополнительные настройки приложения
+ */
 class ConfigData
 {
+    /*
+     * Дополнительные настройки приложения
+     */
     public array $configData;
 
     public function __construct()

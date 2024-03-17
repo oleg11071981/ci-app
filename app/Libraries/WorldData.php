@@ -2,8 +2,14 @@
 
 namespace App\Libraries;
 
+/**
+ * Получение настроек игрового мира
+ */
 class WorldData
 {
+    /*
+     * Настройки игрового мира
+     */
     public array $worldData;
 
     public function __construct()
