@@ -98,8 +98,8 @@ abstract class AbstractAuth extends ResourceController
      */
     protected function getUserInfoFromDb(): array
     {
-        $User = new User();
-        $UserInfoFromDb = $User->getUserInfo($this->UserInfo['id']);
+        $User = new User($this->UserInfo['id'], $this->params, $this->config);
+        $UserInfoFromDb = $User->getUserInfo();
         //Авторизация
         if (isset($UserInfoFromDb['id'])) {
             $data = [
@@ -108,10 +108,10 @@ abstract class AbstractAuth extends ResourceController
                 'ip' => $User->getIPAddress(),
                 'age' => $UserInfoFromDb['b_date'] == '0000-00-00' ? 0 : $User->getUserAge($UserInfoFromDb['b_date'])
             ];
-            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, $data);
+            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, 1, $data);
         } //Регистрация
         elseif (!isset($UserInfoFromDb['error'])) {
-            $UserInfoFromDb = $User->userRegistration($this->UserInfo);
+            $UserInfoFromDb = $User->userRegistration($this->UserInfo, 1);
         }
         if (isset($UserInfoFromDb['error'])) {
             $this->sendResponseError($UserInfoFromDb['error']);
