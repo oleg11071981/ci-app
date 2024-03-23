@@ -53,13 +53,13 @@ class User
     /*
      * Конструктор
      */
-    public function __construct($userId, $params, $config)
+    public function __construct($userId, $accessToken, $config)
     {
         $this->userId = $userId;
+        $this->accessToken = $accessToken;
         $this->tableName = $this->tableName . substr((string)$userId, -1);
         $this->userCacheItemName = 'UserInfo_' . $config->app_name . '_' . $userId;
-        $this->userSessionCacheItemName = 'UserSession_' . $config->app_name . '_' . $params['access_token'];
-        $this->accessToken = $params['access_token'];
+        $this->userSessionCacheItemName = 'UserSession_' . $config->app_name . '_' . $this->accessToken;
     }
 
     /*

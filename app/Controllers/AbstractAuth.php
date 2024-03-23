@@ -98,7 +98,7 @@ abstract class AbstractAuth extends ResourceController
      */
     protected function getUserInfoFromDb(): array
     {
-        $User = new User($this->UserInfo['id'], $this->params, $this->config);
+        $User = new User($this->UserInfo['id'], $this->params['access_token'], $this->config);
         $UserInfoFromDb = $User->getUserInfo();
         //Авторизация
         if (isset($UserInfoFromDb['id'])) {
