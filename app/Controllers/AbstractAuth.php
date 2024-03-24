@@ -51,13 +51,13 @@ abstract class AbstractAuth extends ResourceController
     public function __construct()
     {
         $this->config = config('Personal/Settings');
+        App::blockAppByParam($this->config->app_stop);
+        App::blockAppByIp(User::getIPAddress(),$this->config->blocked_ips);
         $request = service('request');
         $this->params = $request->getGet();
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
         $this->UserInfo = [];
-        App::blockAppByParam($this->config->app_stop);
-        App::blockAppByIp(User::getIPAddress(),$this->config->blocked_ips);
     }
 
     /*
