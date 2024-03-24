@@ -43,7 +43,7 @@ class User
     /*
      * Число секунд для сохранения данных в кэше
      */
-    private int $userCacheItemSeconds = 3600;
+    private int $userCacheItemSeconds;
 
     /*
      * Access Token
@@ -51,21 +51,31 @@ class User
     private string $accessToken;
 
     /*
+     * Опции для вставки/обновления данных
+     */
+    private array $options = [
+        'update_session' => false
+    ];
+
+    /*
      * Конструктор
      */
-    public function __construct($userId, $accessToken, $config)
+    public function __construct($userId, $accessToken, $config, $options = null)
     {
         $this->userId = $userId;
         $this->accessToken = $accessToken;
         $this->tableName = $this->tableName . substr((string)$userId, -1);
         $this->userCacheItemName = 'UserInfo_' . $config->app_name . '_' . $userId;
         $this->userSessionCacheItemName = 'UserSession_' . $config->app_name . '_' . $this->accessToken;
+        $this->userCacheItemSeconds = $config->user_cache_item_seconds;
+        $this->options = empty($options) ? $this->options : $options;
+        $this->options['use_cache'] = $config->use_cache;
     }
 
     /*
      * Определение IP адреса пользователя
      */
-    public function getIPAddress()
+    public static function getIPAddress()
     {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ipAddress = $_SERVER['HTTP_CLIENT_IP'];
@@ -112,20 +122,36 @@ class User
     }
 
     /*
-     * Изменение данных пользователя
+     * Подготовка данных для изменения в БД для пользователя
      */
-    private function progressUserData($UserInfo, $updateSession = 0, $data = null)
+    private function prepareProgressDbUserData($UserInfo, $data, $db): void
     {
-        $db = Database::connect();
-        try {
-            $db->transException(true)->transStart();
-            //Регистрация
-            if (empty($data)) {
-                $db->table($this->tableName)->insert($UserInfo);
-            } //Обновление данных
-            else {
-                $db->table($this->tableName)->where('id', $UserInfo['id'])->update($data);
-            }
+        //Регистрация
+        if (empty($data)) {
+            $db->table($this->tableName)->insert($UserInfo);
+        } //Обновление данных
+        else {
+            $db->table($this->tableName)->where('id', $UserInfo['id'])->update($data);
+        }
+    }
+
+    /*
+     * Подготовка данных для изменения в БД для сессии пользователя
+     */
+    private function prepareProgressDbUserSessionData($db): void
+    {
+        if ($this->options['update_session']) {
+            $db->query("REPLACE INTO `" . $this->sessionTableName . "` (`id`, `access_token`) VALUES (?, ?)", [$this->userId, $this->accessToken]);
+        }
+    }
+
+    /*
+     * Подготовка данных для изменения в кэше
+     */
+    private function prepareProgressCacheUserData($UserInfo): void
+    {
+        //Если используем кэш
+        if ($this->options['use_cache']) {
             $cache = Services::cache();
             if (!$cache instanceof CacheInterface) {
                 throw new RuntimeException('Сервис кэша недоступен');
@@ -133,13 +159,25 @@ class User
             if (!$cache->save($this->userCacheItemName, $UserInfo, $this->userCacheItemSeconds)) {
                 throw new RuntimeException('Ошибка при сохранении данных в кэше: ' . $this->userCacheItemName);
             }
-            //Если требуется обновить сессию
-            if ($updateSession == 1) {
-                $db->query("REPLACE INTO `" . $this->sessionTableName . "` (`id`, `access_token`) VALUES (?, ?)", [$UserInfo['id'], $this->accessToken]);
+            if ($this->options['update_session']) {
                 if (!$cache->save($this->userSessionCacheItemName, $UserInfo['id'], $this->userCacheItemSeconds)) {
                     throw new RuntimeException('Ошибка при сохранении данных в кэше: ' . $this->userSessionCacheItemName);
                 }
             }
+        }
+    }
+
+    /*
+     * Изменение данных пользователя
+     */
+    private function progressUserData($UserInfo, $data = null)
+    {
+        $db = Database::connect();
+        try {
+            $db->transException(true)->transStart();
+            $this->prepareProgressDbUserData($UserInfo, $data, $db);
+            $this->prepareProgressDbUserSessionData($db);
+            $this->prepareProgressCacheUserData($UserInfo);
             $db->transComplete();
             return $UserInfo;
         } catch (DatabaseException $e) {
@@ -154,28 +192,46 @@ class User
     }
 
     /*
-     * Регистрация пользователя
+     * Подготовка данных для вставки
      */
-    public function userRegistration($UserInfo, $updateSession): array
+    private function prepareInsertData($UserInfo)
     {
         $UserInfo['b_date'] = strlen($UserInfo['b_date']) > 5 ? date('Y-m-d', strtotime($UserInfo['b_date'])) : '0000-00-00';
         $UserInfo['age'] = $UserInfo['b_date'] == '0000-00-00' ? 0 : $this->getUserAge($UserInfo['b_date']);
         $UserInfo['create_at'] = date('Y-m-d H:i:s');
         $UserInfo['modify_at'] = date('Y-m-d H:i:s');
-        $UserInfo['ip'] = $this->getIPAddress();
+        $UserInfo['ip'] = self::getIPAddress();
         $UserInfo['date'] = date('Y-m-d');
-        return $this->progressUserData($UserInfo, $updateSession);
+        return $UserInfo;
+    }
+
+    /*
+     * Регистрация пользователя
+     */
+    public function userRegistration($UserInfo): array
+    {
+        return $this->progressUserData($this->prepareInsertData($UserInfo));
+    }
+
+    /*
+     * Подготовка данных для обновления
+     */
+    private function prepareUpdateData($UserInfo, $data): array
+    {
+        if ($this->options['use_cache']) {
+            foreach ($data as $key => $val) {
+                $UserInfo[$key] = $val;
+            }
+        }
+        return $UserInfo;
     }
 
     /*
      * Обновление данных пользователя
      */
-    public function updateUser($UserInfo, $updateSession, $data): array
+    public function updateUser($UserInfo, $data): array
     {
-        foreach ($data as $key => $val) {
-            $UserInfo[$key] = $val;
-        }
-        return $this->progressUserData($UserInfo, $updateSession, $data);
+        return $this->progressUserData($this->prepareUpdateData($UserInfo, $data), $data);
     }
 
 }

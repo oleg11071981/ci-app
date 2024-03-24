@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\App;
 use App\Libraries\ConfigData;
 use App\Libraries\User;
 use App\Libraries\WorldData;
@@ -40,6 +41,11 @@ abstract class AbstractAuth extends ResourceController
     protected array $UserInfo;
 
     /*
+     * Ключ ошибки
+     */
+    protected string $errorKey = 'auth_error';
+
+    /*
      * Конструктор
      */
     public function __construct()
@@ -50,23 +56,8 @@ abstract class AbstractAuth extends ResourceController
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
         $this->UserInfo = [];
-    }
-
-    /*
-     * Прекращение работы запроса с выводом ошибки
-     */
-    private function sendResponseError($error)
-    {
-        $Response = service('response');
-        $Response->setStatusCode(403);
-        $Response->setContentType('application/json');
-        $Response->setJSON([
-            'error' => $error,
-            'error_key' => 'auth_error'
-        ]);
-        log_message('error', $error);
-        $Response->send();
-        exit();
+        App::blockAppByParam($this->config->app_stop);
+        App::blockAppByIp(User::getIPAddress(),$this->config->blocked_ips);
     }
 
     /*
@@ -76,7 +67,7 @@ abstract class AbstractAuth extends ResourceController
     {
         $this->params = $this->SocClass->verifyKey($this->params);
         if (isset($this->params['error'])) {
-            $this->sendResponseError($this->params['error']);
+            App::sendResponseError($this->params['error'], $this->errorKey, 401);
         }
         return $this->params;
     }
@@ -88,7 +79,7 @@ abstract class AbstractAuth extends ResourceController
     {
         $this->UserInfo = $this->SocClass->getUserInfo($this->params);
         if (isset($this->UserInfo['error'])) {
-            $this->sendResponseError($this->UserInfo['error']);
+            App::sendResponseError($this->UserInfo['error'],$this->errorKey);
         }
         return $this->UserInfo;
     }
@@ -98,23 +89,23 @@ abstract class AbstractAuth extends ResourceController
      */
     protected function getUserInfoFromDb(): array
     {
-        $User = new User($this->UserInfo['id'], $this->params['access_token'], $this->config);
+        $User = new User($this->UserInfo['id'], $this->params['access_token'], $this->config, ['update_session' => true]);
         $UserInfoFromDb = $User->getUserInfo();
         //Авторизация
         if (isset($UserInfoFromDb['id'])) {
             $data = [
                 'modify_at' => date('Y-m-d H:i:s'),
                 'date' => date('Y-m-d'),
-                'ip' => $User->getIPAddress(),
+                'ip' => User::getIPAddress(),
                 'age' => $UserInfoFromDb['b_date'] == '0000-00-00' ? 0 : $User->getUserAge($UserInfoFromDb['b_date'])
             ];
-            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, 1, $data);
+            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, $data);
         } //Регистрация
         elseif (!isset($UserInfoFromDb['error'])) {
-            $UserInfoFromDb = $User->userRegistration($this->UserInfo, 1);
+            $UserInfoFromDb = $User->userRegistration($this->UserInfo);
         }
         if (isset($UserInfoFromDb['error'])) {
-            $this->sendResponseError($UserInfoFromDb['error']);
+            App::sendResponseError($UserInfoFromDb['error'],$this->errorKey);
         }
         return $this->UserInfo = $UserInfoFromDb;
     }
