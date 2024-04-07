@@ -64,8 +64,8 @@ class User
     {
         $this->userId = $userId;
         $this->accessToken = $accessToken;
-        $this->tableName = $this->tableName . substr((string)$userId, -1);
-        $this->userCacheItemName = 'UserInfo_' . $config->app_name . '_' . $userId;
+        $this->tableName = $this->tableName . substr((string)$this->userId, -1);
+        $this->userCacheItemName = 'UserInfo_' . $config->app_name . '_' . $this->userId;
         $this->userSessionCacheItemName = 'UserSession_' . $config->app_name . '_' . $this->accessToken;
         $this->userCacheItemSeconds = $config->user_cache_item_seconds;
         $this->options = empty($options) ? $this->options : $options;
@@ -232,6 +232,41 @@ class User
     public function updateUser($UserInfo, $data): array
     {
         return $this->progressUserData($this->prepareUpdateData($UserInfo, $data), $data);
+    }
+
+    /*
+     * Проверка авторизации пользователя
+     */
+    public function checkUserAuth()
+    {
+        if ($this->options['use_cache']) {
+            try {
+                $cache = Services::cache();
+                if (!$cache instanceof CacheInterface) {
+                    throw new RuntimeException('Сервис кэша недоступен');
+                }
+                if ($id = $cache->get($this->userSessionCacheItemName)) {
+                    if ($userInfo = $cache->get($this->userCacheItemName)) {
+                        if ($id == $this->userId) {
+                            return $userInfo;
+                        } else {
+                            return ['error' => 'Ошибка авторизации в приложении: id: ' . $id . ', userId: ' . $this->userId];
+                        }
+                    }
+                }
+            } catch (RuntimeException $e) {
+                return ['error' => 'Ошибка авторизации в приложении: ' . $this->userId . ' (' . $e->getMessage() . ')'];
+            }
+        }
+        $db = Database::connect();
+        try {
+            $query = $db->query("select a.* from " . $this->tableName . " a, users_sessions s where s.access_token=:access_token: and s.id=a.id and a.id=:id:", ['access_token' => $this->accessToken, 'id' => $this->userId]);
+            return $query->getResultArray()[0];
+        } catch (DatabaseException $e) {
+            return ['error' => 'Ошибка авторизации в приложении: ' . $this->userId . ' (' . $e->getMessage() . ')'];
+        } finally {
+            $db->close();
+        }
     }
 
 }

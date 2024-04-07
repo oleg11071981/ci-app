@@ -29,6 +29,28 @@ class App
     }
 
     /*
+     * Проверка обязательных параметров запроса
+     */
+    public static function checkParams($requiredParams, $params): void
+    {
+        foreach ($requiredParams as $param) {
+            if (!isset($params[$param])) {
+                self::sendResponseError("В запросе отсутствуют обязательный параметр: " . $param, 'auth_error');
+            }
+        }
+    }
+
+    /*
+     * Проверка версии конфига
+     */
+    public static function checkConfigVersion($version,$configVersion): void
+    {
+        if ($version != $configVersion) {
+            self::sendResponseError("Игра обновилась. Приложение будет перезагружено, configVersion: " . $configVersion, 'version_error');
+        }
+    }
+
+    /*
      * Вывод ошибки
      */
     public static function sendResponseError($error, $error_key, $status = 403)

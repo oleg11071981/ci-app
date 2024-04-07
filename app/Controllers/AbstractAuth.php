@@ -118,7 +118,9 @@ abstract class AbstractAuth extends ResourceController
         return array(
             'playerData' => $this->UserInfo,
             'worldData' => (new WorldData())->getWorldData(),
-            'configData' => (new ConfigData())->getConfigData()
+            'configData' => (new ConfigData())->getConfigData(),
+            'error' => '',
+            'error_key' => ''
         );
     }
 
