@@ -64,11 +64,30 @@ class AbstractModule extends ResourceController
         $request = service('request');
         $this->params = $request->getGet();
         App::checkParams($this->requiredParams, $this->params);
-        App::checkConfigVersion($this->params['version'],$this->generalConfig->configVersion);
+        App::checkConfigVersion($this->params['version'], $this->generalConfig->configVersion);
         $this->User = new User($this->params['id'], $this->params['access_token'], $this->config);
+        $this->getUserData();
+    }
+
+    /*
+     * Получение информации о пользователе
+     */
+    private function getUserData(): void
+    {
         $this->userInfo = $this->User->checkUserAuth();
         if (isset($this->userInfo['error'])) {
             App::sendResponseError($this->userInfo['error'], 'auth_error');
+        }
+    }
+
+    /*
+     * Обновление данных пользователя
+     */
+    protected function changeUserData($data): void
+    {
+        $this->userInfo = $this->User->updateUser($this->userInfo, $data);
+        if (isset($this->userInfo['error'])) {
+            App::sendResponseError($this->userInfo['error'], $this->errorKey);
         }
     }
 
