@@ -55,6 +55,43 @@ class Vk
     }
 
     /*
+     * Проверка подписи входящих параметров платёжки
+     */
+    public function checkSignature($params, $payments_params)
+    {
+        foreach ($payments_params as $param) {
+            if (!isset($params[$param])) {
+                return ['error' => ['error_code' => 11, 'error_msg' => 'В запросе отсутствует обязательный параметр: ' . $param . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+            }
+        }
+        $sig = $params['sig'];
+        unset($params['sig']);
+        ksort($params);
+        $str = '';
+        foreach ($params as $k => $v) {
+            $str .= $k . '=' . $v;
+        }
+        if ($sig != md5($str . $this->secret_key)) {
+            return ['error' => ['error_code' => 10, 'error_msg' => 'Несовпадение вычисленной и переданной подписи запроса' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+        }
+        return $params;
+    }
+
+    /*
+     * Получение информации о продукте
+     */
+    public function checkProduct($params,$available_products)
+    {
+        if (!in_array($params['item'],$available_products)) {
+            return ['error' => ['error_code' => 20, 'error_msg' => 'Товар недоступен' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+        }
+        if (in_array($params['notification_type'],['get_item','get_item_test'])) {
+            return ['response' => ['item_id' => $params['item'], 'title' => $params['item_title'], 'price' => $params['item_price']]];
+        }
+        return $params;
+    }
+
+    /*
      * Отправка запроса API
      */
     private function sendRequest($api_method, $query = [], $method = 'GET', $timeout = 5)

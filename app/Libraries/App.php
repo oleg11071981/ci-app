@@ -43,7 +43,7 @@ class App
     /*
      * Проверка версии конфига
      */
-    public static function checkConfigVersion($version,$configVersion): void
+    public static function checkConfigVersion($version, $configVersion): void
     {
         if ($version != $configVersion) {
             self::sendResponseError("Игра обновилась. Приложение будет перезагружено, configVersion: " . $configVersion, 'version_error');
@@ -53,18 +53,16 @@ class App
     /*
      * Вывод ошибки
      */
-    public static function sendResponseError($error, $error_key, $status = 403)
+    public static function sendResponseError($error, $error_key, $status = 403): void
     {
-        $Response = service('response');
-        $Response->setStatusCode($status);
-        $Response->setContentType('application/json');
-        $Response->setJSON([
-            'error' => $error,
-            'error_key' => $error_key
-        ]);
-        log_message('error', $error);
-        $Response->send();
-        exit();
+        Response::sendResponse(
+            [
+                'error' => $error,
+                'error_key' => $error_key
+            ],
+            $status,
+            $error
+        );
     }
 
 }
