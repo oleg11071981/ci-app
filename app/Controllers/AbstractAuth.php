@@ -99,7 +99,7 @@ abstract class AbstractAuth extends ResourceController
                 'ip' => User::getIPAddress(),
                 'age' => $UserInfoFromDb['b_date'] == '0000-00-00' ? 0 : $User->getUserAge($UserInfoFromDb['b_date'])
             ];
-            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, $data);
+            $UserInfoFromDb = $User->updateUser($UserInfoFromDb, $data, []);
         } //Регистрация
         elseif (!isset($UserInfoFromDb['error'])) {
             $UserInfoFromDb = $User->userRegistration($this->UserInfo);

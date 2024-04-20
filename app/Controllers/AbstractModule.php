@@ -35,7 +35,7 @@ class AbstractModule extends ResourceController
     /*
      * Информация о пользователе
      */
-    protected $userInfo;
+    protected array $userInfo;
 
     /*
      * Класс для работы с пользователем
@@ -83,9 +83,9 @@ class AbstractModule extends ResourceController
     /*
      * Обновление данных пользователя
      */
-    protected function changeUserData($data): void
+    protected function changeUserData($data,$sqlInfo=[]): void
     {
-        $this->userInfo = $this->User->updateUser($this->userInfo, $data);
+        $this->userInfo = $this->User->updateUser($this->userInfo, $data, $sqlInfo);
         if (isset($this->userInfo['error'])) {
             App::sendResponseError($this->userInfo['error'], $this->errorKey);
         }

@@ -168,15 +168,32 @@ class User
     }
 
     /*
+     * Подготовка данных для дополнительного запроса
+     */
+    private function prepareProgressDbUserSql($db, $sqlInfo): void
+    {
+        if (count($sqlInfo) > 0) {
+            foreach ($sqlInfo as $info) {
+                if (isset($info['action']) && isset($info['data']) && isset($info['table_name'])) {
+                    if ($info['action'] == 'insert') {
+                        $db->table($info['table_name'])->insert($info['data']);
+                    }
+                }
+            }
+        }
+    }
+
+    /*
      * Изменение данных пользователя
      */
-    private function progressUserData($UserInfo, $data = null)
+    private function progressUserData($UserInfo, $data = null, $sqlInfo = [])
     {
         $db = Database::connect();
         try {
             $db->transException(true)->transStart();
             $this->prepareProgressDbUserData($UserInfo, $data, $db);
             $this->prepareProgressDbUserSessionData($db);
+            $this->prepareProgressDbUserSql($db, $sqlInfo);
             $this->prepareProgressCacheUserData($UserInfo);
             $db->transComplete();
             return $UserInfo;
@@ -229,9 +246,9 @@ class User
     /*
      * Обновление данных пользователя
      */
-    public function updateUser($UserInfo, $data): array
+    public function updateUser($UserInfo, $data, $sqlInfo): array
     {
-        return $this->progressUserData($this->prepareUpdateData($UserInfo, $data), $data);
+        return $this->progressUserData($this->prepareUpdateData($UserInfo, $data), $data, $sqlInfo);
     }
 
     /*
