@@ -13,6 +13,11 @@ use Exception;
 class Vk
 {
     /*
+     * Имя социальной сети
+     */
+    public string $soc_name;
+
+    /*
      * Секретный ключ приложения
      */
     public string $secret_key;
@@ -41,6 +46,7 @@ class Vk
         $this->api_version = $config->api_version;
         $this->api_url = $config->api_url;
         $this->service_key = $config->service_key;
+        $this->soc_name = $config->soc_name;
     }
 
     /*
@@ -82,13 +88,13 @@ class Vk
     /*
      * Получение информации о продукте
      */
-    public function checkProduct($params, $available_products)
+    public function checkProduct($params, $products)
     {
-        if (!in_array($params['item'], $available_products)) {
+        if (!isset($products[$params['item']])) {
             return $this->setPaymentError(20,'Товар недоступен' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""));
         }
         if (in_array($params['notification_type'], ['get_item', 'get_item_test'])) {
-            return ['response' => ['item_id' => $params['item'], 'title' => $params['item_title'], 'price' => $params['item_price']]];
+            return ['response' => ['item_id' => $params['item'], 'title' => $products[$params['item']]['title'], 'price' => $products[$params['item']]['prices'][$this->soc_name]]];
         }
         if (in_array($params['notification_type'], ['order_status_change_test', 'order_status_change'])) {
             return $params;

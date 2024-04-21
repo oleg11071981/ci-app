@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\GetConfig;
 use App\Libraries\Response;
 use App\Libraries\User;
 use CodeIgniter\RESTful\ResourceController;
@@ -28,6 +29,11 @@ class AbstractPayment extends ResourceController
     protected $paymentsConfig;
 
     /*
+     * Общие настройки платёжки приложения
+     */
+    protected $paymentsGeneralConfig;
+
+    /*
      * Имя класса приложения
      */
     private $ClassName;
@@ -45,7 +51,7 @@ class AbstractPayment extends ResourceController
     /*
      * Access Token
      */
-    protected string $accessToken;
+    protected $accessToken;
 
     /*
      * Информация о пользователе
@@ -63,6 +69,17 @@ class AbstractPayment extends ResourceController
         $this->params = $request->getPost();
         $this->ClassName = $this->config->soc_class_name;
         $this->SocClass = new $this->ClassName($this->config);
+        $this->userId = (int)$this->SocClass->getUserIdByPaymentParams($this->params);
+        $this->accessToken = User::getAccessToken($this->userId);
+        if (isset($this->accessToken['error'])) {
+            Response::sendResponse($this->SocClass->setPaymentError(1, $this->accessToken['error']), 200, $this->accessToken['error']);
+        }
+        $User = new User($this->userId, $this->accessToken, $this->config);
+        $this->userInfo = $User->checkUserAuth();
+        if (isset($this->userInfo['error'])) {
+            Response::sendResponse($this->SocClass->setPaymentError(1, $this->userInfo['error']), 200, $this->userInfo['error']);
+        }
+        $this->paymentsGeneralConfig = GetConfig::get_config_data('General/Payments', $this->userInfo['ad_id']);
     }
 
     /*
@@ -82,7 +99,7 @@ class AbstractPayment extends ResourceController
      */
     protected function checkProduct()
     {
-        $this->params = $this->SocClass->checkProduct($this->params, $this->paymentsConfig->available_products);
+        $this->params = $this->SocClass->checkProduct($this->params, $this->paymentsGeneralConfig->products);
         if (isset($this->params['error'])) {
             Response::sendResponse($this->params, 200, $this->params['error']['error_msg']);
         } elseif (isset($this->params['response'])) {
@@ -103,19 +120,13 @@ class AbstractPayment extends ResourceController
     }
 
     /*
-     * Проверка наличия информации о пользователе
+     * Проверка стоимости продукта
      */
-    protected function checkUserInfo()
+    protected function checkProductPrice():void
     {
-        $this->userId = (int)$this->SocClass->getUserIdByPaymentParams($this->params);
-        $this->accessToken = User::getAccessToken($this->userId);
-        if (isset($this->accessToken['error'])) {
-            Response::sendResponse($this->SocClass->setPaymentError(1, $this->accessToken['error']), 200, $this->accessToken['error']);
-        }
-        $User = new User($this->userId, $this->accessToken, $this->config);
-        $this->userInfo = $User->checkUserAuth();
-        if (isset($this->userInfo['error'])) {
-            Response::sendResponse($this->SocClass->setPaymentError(1, $this->userInfo['error']), 200, $this->userInfo['error']);
+        if ($this->params['item_price'] != $this->paymentsGeneralConfig->products[$this->params['item']]['prices'][$this->config->soc_name] ) {
+            $errMessage = 'Неверная цена продукта: '.$this->params['item'].', price: '.$this->params['item_price'];
+            Response::sendResponse($this->SocClass->setPaymentError(1, $errMessage), 200, $errMessage);
         }
     }
 

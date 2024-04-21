@@ -17,7 +17,7 @@ class VkPayment extends AbstractPayment
 
         $this->checkPayment();
 
-        $this->checkUserInfo();
+        $this->checkProductPrice();
 
         $this->setPayment();
 

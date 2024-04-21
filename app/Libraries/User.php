@@ -299,7 +299,7 @@ class User
         } finally {
             $db->close();
         }
-        return $result->access_token ?? null;
+        return $result->access_token ?? ['error' => 'Ошибка авторизации в приложении: ' . $userId];
     }
 
 
