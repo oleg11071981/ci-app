@@ -15,7 +15,11 @@ class VkPayment extends AbstractPayment
 
         $this->checkProduct();
 
-        return $this->respond($this->params,200);
+        $this->checkPayment();
+
+        $this->checkUserInfo();
+
+        $this->setPayment();
 
     }
 }

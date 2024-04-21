@@ -28,7 +28,7 @@ class User
     /*
      * Имя пользовательской таблицы сессий
      */
-    private string $sessionTableName = 'users_sessions';
+    private static string $sessionTableName = 'users_sessions';
 
     /*
      * Имя ячейки пользователя для кэша
@@ -141,7 +141,7 @@ class User
     private function prepareProgressDbUserSessionData($db): void
     {
         if ($this->options['update_session']) {
-            $db->query("REPLACE INTO `" . $this->sessionTableName . "` (`id`, `access_token`) VALUES (?, ?)", [$this->userId, $this->accessToken]);
+            $db->query("REPLACE INTO `" . self::$sessionTableName . "` (`id`, `access_token`) VALUES (?, ?)", [$this->userId, $this->accessToken]);
         }
     }
 
@@ -285,5 +285,22 @@ class User
             $db->close();
         }
     }
+
+    /*
+     * Получение access_token
+     */
+    public static function getAccessToken($userId)
+    {
+        $db = Database::connect();
+        try {
+            $result = $db->table(self::$sessionTableName)->select('access_token')->where('id', $userId)->get()->getRow();
+        } catch (DatabaseException $e) {
+            return ['error' => 'Ошибка авторизации в приложении: ' . $userId . ' (' . $e->getMessage() . ')'];
+        } finally {
+            $db->close();
+        }
+        return $result->access_token ?? null;
+    }
+
 
 }

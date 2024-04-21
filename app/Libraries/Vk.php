@@ -2,6 +2,8 @@
 
 namespace App\Libraries;
 
+use CodeIgniter\Database\Exceptions\DatabaseException;
+use Config\Database;
 use Config\Services;
 use Exception;
 
@@ -61,7 +63,7 @@ class Vk
     {
         foreach ($payments_params as $param) {
             if (!isset($params[$param])) {
-                return ['error' => ['error_code' => 11, 'error_msg' => 'В запросе отсутствует обязательный параметр: ' . $param . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+                return $this->setPaymentError(11,'В запросе отсутствует обязательный параметр: ' . $param . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""));
             }
         }
         $sig = $params['sig'];
@@ -72,7 +74,7 @@ class Vk
             $str .= $k . '=' . $v;
         }
         if ($sig != md5($str . $this->secret_key)) {
-            return ['error' => ['error_code' => 10, 'error_msg' => 'Несовпадение вычисленной и переданной подписи запроса' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+            return $this->setPaymentError(10,'Несовпадение вычисленной и переданной подписи запроса' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""));
         }
         return $params;
     }
@@ -80,15 +82,55 @@ class Vk
     /*
      * Получение информации о продукте
      */
-    public function checkProduct($params,$available_products)
+    public function checkProduct($params, $available_products)
     {
-        if (!in_array($params['item'],$available_products)) {
-            return ['error' => ['error_code' => 20, 'error_msg' => 'Товар недоступен' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""), 'critical' => true]];
+        if (!in_array($params['item'], $available_products)) {
+            return $this->setPaymentError(20,'Товар недоступен' . (isset($params['user_id']) ? " (user_id: " . $params['user_id'] . ")" : ""));
         }
-        if (in_array($params['notification_type'],['get_item','get_item_test'])) {
+        if (in_array($params['notification_type'], ['get_item', 'get_item_test'])) {
             return ['response' => ['item_id' => $params['item'], 'title' => $params['item_title'], 'price' => $params['item_price']]];
         }
-        return $params;
+        if (in_array($params['notification_type'], ['order_status_change_test', 'order_status_change'])) {
+            return $params;
+        }
+        return $this->setPaymentError(1,'Неизвестный notification_type');
+    }
+
+    /*
+     * Проверка наличия платежа
+     */
+    public function checkPayment($params, $payment_table)
+    {
+        $db = Database::connect();
+        try {
+            $result = $db->table($payment_table)->select('order_id')->where('order_id', $params['order_id'])->where('order_id > ', 0)->get()->getRow();
+        } catch (DatabaseException $e) {
+            return $this->setPaymentError(1,'Ошибка проверки платежа: ' . $e->getMessage());
+        } finally {
+            $db->close();
+        }
+        $order_id = $result->order_id ?? 0;
+        if ($order_id > 0) {
+            return $this->setPaymentError(1,'Платёж уже был совершён, order_id: ' . $order_id);
+        } else {
+            return $order_id;
+        }
+    }
+
+    /*
+     * Выставление ошибки
+     */
+    public function setPaymentError($error_code, $error_msg, $critical = true): array
+    {
+        return [ 'error' => [ 'error_code' => $error_code, 'error_msg' => $error_msg, 'critical' => $critical ] ];
+    }
+
+    /*
+     * Получение идентификатора пользователя по платёжным данным
+    */
+    public function getUserIdByPaymentParams($params)
+    {
+        return $params['user_id'];
     }
 
     /*
