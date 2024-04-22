@@ -278,7 +278,7 @@ class User
         $db = Database::connect();
         try {
             $query = $db->query("select a.* from " . $this->tableName . " a, users_sessions s where s.access_token=:access_token: and s.id=a.id and a.id=:id:", ['access_token' => $this->accessToken, 'id' => $this->userId]);
-            return $query->getResultArray()[0];
+            return $query->getResultArray()[0] ?? ['error' => 'Ошибка авторизации в приложении: ' . $this->userId];
         } catch (DatabaseException $e) {
             return ['error' => 'Ошибка авторизации в приложении: ' . $this->userId . ' (' . $e->getMessage() . ')'];
         } finally {
